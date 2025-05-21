@@ -3,6 +3,7 @@
 // In a real app, you would fetch car details based on the ID.
 "use client";
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { mockCars } from '@/lib/mock-data';
@@ -10,13 +11,24 @@ import type { Car } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeftIcon, CalendarDaysIcon, CogIcon, DropletIcon, GaugeIcon, PaintBucketIcon, PaletteIcon, PhoneIcon, TagIcon, UserIcon, WrenchIcon, InfoIcon } from 'lucide-react';
+import { ArrowLeftIcon, CalendarDaysIcon, CogIcon, CreditCardIcon, DropletIcon, GaugeIcon, InfoIcon, Loader2Icon, PaintBucketIcon, PaletteIcon, PhoneIcon, TagIcon, UserIcon, WrenchIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { createCheckoutSession } from '@/app/actions/stripeActions';
+import { loadStripe } from '@stripe/stripe-js';
+import { useToast } from '@/hooks/use-toast';
+
+// Initialize Stripe.js with your publishable key
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
+
 
 export default function CarDetailPage() {
   const params = useParams();
   const carId = params.id as string;
+  const { toast } = useToast();
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Find car by ID from mock data
   const car = mockCars.find((c: Car) => c.id === carId);
@@ -46,6 +58,73 @@ export default function CarDetailPage() {
 
   const photos = car.photos && car.photos.length > 0 ? car.photos : [car.imageUrl];
 
+  const handleBuyNow = async () => {
+    if (!stripePromise) {
+      toast({
+        title: "Payment Error",
+        description: "Stripe is not configured. Please check environment variables.",
+        variant: "destructive",
+      });
+      console.error("Stripe publishable key not found.");
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      const { sessionId, error: actionError } = await createCheckoutSession({
+        car: {
+          id: car.id,
+          make: car.make,
+          model: car.model,
+          price: car.price,
+          imageUrl: car.imageUrl,
+          description: car.description,
+        },
+      });
+
+      if (actionError) {
+        toast({
+          title: "Payment Error",
+          description: actionError,
+          variant: "destructive",
+        });
+        setIsProcessingPayment(false);
+        return;
+      }
+
+      if (sessionId) {
+        const stripe = await stripePromise;
+        if (stripe) {
+          const { error } = await stripe.redirectToCheckout({ sessionId });
+          if (error) {
+            console.error("Stripe redirectToCheckout error:", error);
+            toast({
+              title: "Payment Error",
+              description: error.message || "Failed to redirect to Stripe.",
+              variant: "destructive",
+            });
+          }
+        } else {
+           toast({
+            title: "Payment Error",
+            description: "Stripe.js failed to load.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Buy Now error:", error);
+      toast({
+        title: "Payment Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+
   return (
     <div className="max-w-6xl mx-auto">
       <Button asChild variant="outline" className="mb-6">
@@ -66,7 +145,7 @@ export default function CarDetailPage() {
                   height={700}
                   className="object-cover w-full h-[350px] md:h-[500px]"
                   data-ai-hint={`${car.make.toLowerCase()} ${car.model.toLowerCase()}`}
-                  priority={index === 0} // Prioritize loading the first image
+                  priority={index === 0}
                 />
               </CarouselItem>
             ))}
@@ -80,7 +159,6 @@ export default function CarDetailPage() {
         </Carousel>
 
         <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-x-8 gap-y-6">
-          {/* Left Column: Car Details */}
           <div className="lg:col-span-2 space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center">
               <div>
@@ -130,11 +208,10 @@ export default function CarDetailPage() {
             </div>
           </div>
 
-          {/* Right Column: Contact Seller */}
           <div className="lg:col-span-1">
-            <Card className="bg-secondary/50 shadow-md sticky top-24"> {/* Sticky positioning */}
+            <Card className="bg-secondary/50 shadow-md sticky top-24">
               <CardHeader>
-                <CardTitle className="text-xl text-primary">Contact Seller</CardTitle>
+                <CardTitle className="text-xl text-primary">Purchase This Car</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                  <div className="flex items-center">
@@ -148,6 +225,19 @@ export default function CarDetailPage() {
                 <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
                   Email Seller
                 </Button>
+                <Button 
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                  onClick={handleBuyNow}
+                  disabled={isProcessingPayment || !stripePromise}
+                >
+                  {isProcessingPayment ? (
+                    <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CreditCardIcon className="mr-2 h-4 w-4" />
+                  )}
+                  {isProcessingPayment ? 'Processing...' : `Buy Now for $${car.price.toLocaleString('en-US')}`}
+                </Button>
+                {!stripePromise && <p className="text-xs text-destructive text-center mt-2">Payment system is not configured.</p>}
               </CardContent>
             </Card>
           </div>
@@ -156,4 +246,3 @@ export default function CarDetailPage() {
     </div>
   );
 }
-
