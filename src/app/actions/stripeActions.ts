@@ -1,28 +1,29 @@
 
 'use server';
 
-import { stripe } from '@/lib/stripe';
+import { stripe, isStripeConfigured, stripeConfigurationError } from '@/lib/stripe';
 import type { Car } from '@/types';
-import { headers } from 'next/headers'; // Not strictly needed if NEXT_PUBLIC_APP_URL is reliable
+// import { headers } from 'next/headers'; // Not strictly needed if NEXT_PUBLIC_APP_URL is reliable
 
 interface CreateCheckoutSessionInput {
   car: Pick<Car, 'id' | 'make' | 'model' | 'price' | 'imageUrl' | 'description'>;
 }
 
 export async function createCheckoutSession(input: CreateCheckoutSessionInput): Promise<{ sessionId?: string; error?: string }> {
+  if (!isStripeConfigured || !stripe) {
+    console.error('Stripe is not configured for server-side operations:', stripeConfigurationError);
+    return { error: stripeConfigurationError || 'Payment processing is currently unavailable because Stripe is not configured on the server.' };
+  }
+
   const { car } = input;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
-  if (!process.env.STRIPE_SECRET_KEY) {
-    console.error('Stripe secret key is not configured.');
-    return { error: 'Payment processing is temporarily unavailable. STRIPE_SECRET_KEY missing.' };
-  }
   if (!appUrl) {
     console.error('NEXT_PUBLIC_APP_URL is not configured.');
-    return { error: 'Payment processing is temporarily unavailable. APP_URL missing.' };
+    return { error: 'Payment processing is temporarily unavailable. Application URL is missing.' };
   }
   if (!car) {
-    return { error: 'Car details are missing.' };
+    return { error: 'Car details are missing for checkout.' };
   }
   if (typeof car.price !== 'number' || car.price <= 0) {
     return { error: 'Invalid car price for checkout.'};
