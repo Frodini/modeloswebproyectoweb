@@ -6,30 +6,31 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircleIcon, Loader2Icon, XCircleIcon } from 'lucide-react'; // Import XCircleIcon
+import { CheckCircleIcon, Loader2Icon, XCircleIcon } from 'lucide-react';
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session_id');
+  const sessionIdFromQuery = searchParams.get('session_id'); // Renamed to avoid conflict
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [verifiedSessionId, setVerifiedSessionId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sessionId) {
+    console.log("PaymentSuccessPage loaded. Session ID from query params:", sessionIdFromQuery);
+    if (sessionIdFromQuery) {
       // In a real app, you would ideally make a server-side request here
       // to your backend to verify the session_id with Stripe and retrieve session details,
       // then update your database (e.g., mark order as paid, log transaction).
       // This server-side verification is crucial for security and reliability.
       // For this prototype, we'll just simulate a successful confirmation.
-      console.log("Payment successful client-side for session:", sessionId);
-      setVerifiedSessionId(sessionId); // Simulate verification
+      console.log("Payment successful client-side for session:", sessionIdFromQuery);
+      setVerifiedSessionId(sessionIdFromQuery); // Simulate verification
       setIsLoading(false);
     } else {
       setError("No session ID found. Payment confirmation is unclear.");
       setIsLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionIdFromQuery]);
 
   if (isLoading) {
     return (
@@ -87,4 +88,3 @@ export default function PaymentSuccessPage() {
     </div>
   );
 }
-

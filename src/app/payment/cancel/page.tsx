@@ -5,11 +5,16 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { XCircleIcon } from 'lucide-react'; // Import from lucide-react
+import { XCircleIcon } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function PaymentCancelPage() {
   const searchParams = useSearchParams();
   const carId = searchParams.get('car_id');
+
+  useEffect(() => {
+    console.log("PaymentCancelPage loaded. Car ID from params:", carId);
+  }, [carId]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] py-8">
@@ -43,4 +48,3 @@ export default function PaymentCancelPage() {
     </div>
   );
 }
-
