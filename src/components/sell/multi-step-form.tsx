@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -298,7 +299,7 @@ export function MultiStepForm() {
                 {photoPreviews.length > 0 && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                     {photoPreviews.map((src, index) => (
-                      <Image key={index} src={src} alt={`Preview ${index + 1}`} width={150} height={100} className="rounded object-cover aspect-video" data-ai-hint="car side view"/>
+                      <Image key={index} src={src} alt={`Preview ${index + 1}`} width={150} height={100} className="rounded object-cover aspect-video" data-ai-hint="side view"/>
                     ))}
                   </div>
                 )}
@@ -353,3 +354,5 @@ export function MultiStepForm() {
     </Card>
   );
 }
+
+    
