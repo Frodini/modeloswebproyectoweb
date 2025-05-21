@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -20,6 +21,8 @@ interface FiltersProps {
   onFilterChange: (filters: Record<string, string>) => void;
 }
 
+const ANY_FILTER_VALUE = "--ANY--"; // Special value for "Any" options
+
 export function Filters({ initialFilters, onFilterChange }: FiltersProps) {
   const [make, setMake] = useState(initialFilters.make || '');
   const [model, setModel] = useState(initialFilters.model || '');
@@ -32,15 +35,19 @@ export function Filters({ initialFilters, onFilterChange }: FiltersProps) {
   useEffect(() => {
     if (make && allCarModels[make]) {
       setAvailableModels(allCarModels[make]);
+      // If current model is not valid for the new make, reset model
+      if (model && !allCarModels[make].includes(model)) {
+        setModel('');
+      }
     } else {
       setAvailableModels([]);
-    }
-    // If selected make changes, and current model is not in new make's models, reset model.
-    if (make && model && allCarModels[make] && !allCarModels[make].includes(model)) {
+      // If no make is selected (make is ''), model should also be cleared
+      if (model !== '') { // Only setModel if it's not already empty
         setModel('');
+      }
     }
-  }, [make, model]);
-  
+  }, [make]); // model removed from deps as setModel is called inside for make-driven changes
+
   const handleApplyFilters = () => {
     onFilterChange({ make, model, minYear, maxYear, minPrice, maxPrice });
   };
@@ -55,7 +62,6 @@ export function Filters({ initialFilters, onFilterChange }: FiltersProps) {
     onFilterChange({});
   };
 
-
   return (
     <Card className="mb-8 shadow-lg">
       <CardHeader>
@@ -68,12 +74,22 @@ export function Filters({ initialFilters, onFilterChange }: FiltersProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label htmlFor="make-filter" className="block text-sm font-medium mb-1">Make</label>
-            <Select value={make} onValueChange={(value) => { setMake(value); setModel(''); }}>
+            <Select
+              value={make === '' ? undefined : make}
+              onValueChange={(value) => {
+                const newMake = value === ANY_FILTER_VALUE ? "" : value || "";
+                setMake(newMake);
+                // Reset model if make is cleared or changed
+                if (newMake === "" || (model && allCarModels[newMake] && !allCarModels[newMake].includes(model))) {
+                  setModel('');
+                }
+              }}
+            >
               <SelectTrigger id="make-filter">
                 <SelectValue placeholder="Any Make" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any Make</SelectItem>
+                <SelectItem value={ANY_FILTER_VALUE}>Any Make</SelectItem>
                 {carMakes.map((m) => (
                   <SelectItem key={m} value={m}>{m}</SelectItem>
                 ))}
@@ -83,12 +99,18 @@ export function Filters({ initialFilters, onFilterChange }: FiltersProps) {
 
           <div>
             <label htmlFor="model-filter" className="block text-sm font-medium mb-1">Model</label>
-            <Select value={model} onValueChange={setModel} disabled={!make || availableModels.length === 0}>
+            <Select
+              value={model === '' ? undefined : model}
+              onValueChange={(value) => {
+                setModel(value === ANY_FILTER_VALUE ? "" : value || "");
+              }}
+              disabled={!make || availableModels.length === 0}
+            >
               <SelectTrigger id="model-filter">
                 <SelectValue placeholder="Any Model" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any Model</SelectItem>
+                <SelectItem value={ANY_FILTER_VALUE}>Any Model</SelectItem>
                 {availableModels.map((m) => (
                   <SelectItem key={m} value={m}>{m}</SelectItem>
                 ))}
@@ -98,12 +120,17 @@ export function Filters({ initialFilters, onFilterChange }: FiltersProps) {
 
           <div>
             <label htmlFor="min-year-filter" className="block text-sm font-medium mb-1">Min Year</label>
-            <Select value={minYear} onValueChange={setMinYear}>
+            <Select
+              value={minYear === '' ? undefined : minYear}
+              onValueChange={(value) => {
+                setMinYear(value === ANY_FILTER_VALUE ? "" : value || "");
+              }}
+            >
               <SelectTrigger id="min-year-filter">
                 <SelectValue placeholder="Any Year" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any Year</SelectItem>
+                <SelectItem value={ANY_FILTER_VALUE}>Any Year</SelectItem>
                 {carYears.map((y) => (
                   <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                 ))}
@@ -113,12 +140,17 @@ export function Filters({ initialFilters, onFilterChange }: FiltersProps) {
           
           <div>
             <label htmlFor="max-year-filter" className="block text-sm font-medium mb-1">Max Year</label>
-            <Select value={maxYear} onValueChange={setMaxYear}>
+            <Select
+              value={maxYear === '' ? undefined : maxYear}
+              onValueChange={(value) => {
+                setMaxYear(value === ANY_FILTER_VALUE ? "" : value || "");
+              }}
+            >
               <SelectTrigger id="max-year-filter">
                 <SelectValue placeholder="Any Year" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any Year</SelectItem>
+                <SelectItem value={ANY_FILTER_VALUE}>Any Year</SelectItem>
                 {carYears.map((y) => (
                   <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                 ))}
