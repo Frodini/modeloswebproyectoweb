@@ -5,30 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-// Assuming XCircleIcon might be needed, or use one from lucide-react if available
-// For this, I'll use a simple SVG as a placeholder if not directly available.
-// import { XCircleIcon } from 'lucide-react'; // If it exists
-
-// Helper XCircleIcon if not available in lucide-react (it is, but as fallback)
-const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <circle cx="12" cy="12" r="10" />
-    <line x1="15" y1="9" x2="9" y2="15" />
-    <line x1="9" y1="9" x2="15" y2="15" />
-  </svg>
-);
-
+import { XCircleIcon } from 'lucide-react'; // Import from lucide-react
 
 export default function PaymentCancelPage() {
   const searchParams = useSearchParams();
@@ -66,3 +43,4 @@ export default function PaymentCancelPage() {
     </div>
   );
 }
+
