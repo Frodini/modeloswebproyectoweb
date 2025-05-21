@@ -32,7 +32,15 @@ export async function createCheckoutSession(input: CreateCheckoutSessionInput): 
 
   try {
     // Ensure imageUrl is a valid string, default if not.
-    const imageUrls = car.imageUrl && typeof car.imageUrl === 'string' ? [car.imageUrl] : ['https://placehold.co/100x100.png'];
+    // If using local images, make sure the car.imageUrl is an absolute path if Stripe needs it,
+    // or a publicly accessible URL if Stripe fetches it server-side.
+    // For now, assuming car.imageUrl will be like '/images/cars/toyota-camry-main.png'
+    // Stripe needs absolute URLs for images. We'll prepend the appUrl.
+    const carImage = car.imageUrl && typeof car.imageUrl === 'string' 
+        ? (car.imageUrl.startsWith('http') ? car.imageUrl : `${appUrl}${car.imageUrl}`)
+        : `${appUrl}/images/general/default-checkout.png`; // Updated fallback path
+
+    const imageUrls = [carImage];
 
 
     const session = await stripe.checkout.sessions.create({

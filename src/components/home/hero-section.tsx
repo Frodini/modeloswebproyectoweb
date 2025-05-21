@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -24,13 +25,14 @@ export function HeroSection() {
   return (
     <div className="relative py-16 md:py-24 rounded-lg overflow-hidden shadow-xl mb-12">
       <Image
-        src="https://placehold.co/1200x400.png" // Replace with a relevant hero image
+        src="/images/general/hero-background.png" // Updated path
         alt="Hero background image of cars"
         layout="fill"
         objectFit="cover"
         quality={80}
         className="z-0"
         data-ai-hint="cars driving"
+        priority // Good to have priority for LCP images
       />
       <div className="absolute inset-0 bg-black/60 z-10" />
       <div className="container mx-auto px-4 md:px-6 relative z-20">
