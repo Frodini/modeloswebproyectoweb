@@ -65,7 +65,7 @@ export default function CarDetailPage() {
                   width={1200}
                   height={700}
                   className="object-cover w-full h-[350px] md:h-[500px]"
-                  data-ai-hint={`${car.make.toLowerCase()} ${car.model.toLowerCase()} interior exterior`}
+                  data-ai-hint={`${car.make.toLowerCase()} ${car.model.toLowerCase()}`}
                   priority={index === 0} // Prioritize loading the first image
                 />
               </CarouselItem>
