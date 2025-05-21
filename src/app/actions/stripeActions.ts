@@ -23,9 +23,11 @@ export async function createCheckoutSession(input: CreateCheckoutSessionInput): 
     return { error: 'Payment processing is temporarily unavailable. Application URL is missing.' };
   }
   if (!car) {
+    console.error('Car details are missing for checkout input.');
     return { error: 'Car details are missing for checkout.' };
   }
   if (typeof car.price !== 'number' || car.price <= 0) {
+    console.error(`Invalid car price for checkout: ${car.price}`);
     return { error: 'Invalid car price for checkout.'};
   }
 
@@ -80,3 +82,4 @@ export async function createCheckoutSession(input: CreateCheckoutSessionInput): 
     return { error: `Failed to create payment session: ${errorMessage}` };
   }
 }
+
