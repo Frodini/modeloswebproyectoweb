@@ -152,7 +152,7 @@ export default function CarDetailPage() {
                   width={1200}
                   height={700}
                   className="object-cover w-full h-[350px] md:h-[500px]"
-                  data-ai-hint={`${car.make.toLowerCase()} car`}
+                  data-ai-hint={`${car.make.toLowerCase()} ${car.model.toLowerCase()}`}
                   priority={index === 0}
                 />
               </CarouselItem>
@@ -254,4 +254,3 @@ export default function CarDetailPage() {
     </div>
   );
 }
-
