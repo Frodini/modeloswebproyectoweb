@@ -33,7 +33,7 @@ export function CarCard({ car }: CarCardProps) {
         <div className="text-muted-foreground text-sm space-y-1">
           <div className="flex items-center gap-2">
             <TagIcon className="w-4 h-4 text-primary" />
-            <span>Price: ${car.price.toLocaleString()}</span>
+            <span>Price: ${car.price.toLocaleString('en-US')}</span>
           </div>
           <div className="flex items-center gap-2">
             <CalendarDaysIcon className="w-4 h-4 text-primary" />
@@ -41,7 +41,7 @@ export function CarCard({ car }: CarCardProps) {
           </div>
           <div className="flex items-center gap-2">
             <GaugeIcon className="w-4 h-4 text-primary" />
-            <span>Mileage: {car.mileage.toLocaleString()} miles</span>
+            <span>Mileage: {car.mileage.toLocaleString('en-US')} miles</span>
           </div>
         </div>
         <p className="mt-2 text-sm line-clamp-2">{car.description}</p>

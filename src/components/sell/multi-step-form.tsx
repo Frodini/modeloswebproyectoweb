@@ -17,6 +17,7 @@ import { carMakes, carModels as allCarModels, carYears } from '@/lib/mock-data';
 import type { CarCondition } from '@/types';
 import Image from 'next/image';
 import { ArrowLeftIcon, ArrowRightIcon, CheckCircleIcon, CarIcon, ImageIcon, InfoIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 const conditionOptions: { value: CarCondition, label: string }[] = [
   { value: 'new', label: 'New' },
@@ -62,6 +63,7 @@ export function MultiStepForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const { toast } = useToast();
+  const router = useRouter(); // Initialize useRouter
 
   const form = useForm<FormData>({
     resolver: zodResolver(currentStep === 1 ? step1Schema : step2Schema),
@@ -103,7 +105,7 @@ export function MultiStepForm() {
     setValue('price', price, { shouldValidate: true });
     toast({
         title: "Price Updated",
-        description: `Suggested price $${price.toLocaleString()} has been applied.`,
+        description: `Suggested price $${price.toLocaleString('en-US')} has been applied.`,
     });
   };
 
@@ -131,7 +133,6 @@ export function MultiStepForm() {
     setCurrentStep(totalSteps + 1); // Go to a success step/message
   };
   
-  const router = useRouter(); // for toast action
 
   if (currentStep > totalSteps) {
     return (
@@ -308,10 +309,10 @@ export function MultiStepForm() {
               <section className="space-y-4">
                 <h3 className="text-xl font-semibold flex items-center gap-2 text-primary"><InfoIcon/>Preview Listing</h3>
                 <Card className="bg-muted/20 p-4">
-                  <CardTitle className="text-lg mb-2">{getValues("make")} {getValues("model")} - ${getValues("price")?.toLocaleString()}</CardTitle>
+                  <CardTitle className="text-lg mb-2">{getValues("make")} {getValues("model")} - ${getValues("price")?.toLocaleString('en-US')}</CardTitle>
                   <div className="space-y-1 text-sm">
                     <p><strong>Year:</strong> {getValues("year")}</p>
-                    <p><strong>Mileage:</strong> {getValues("mileage")?.toLocaleString()} miles</p>
+                    <p><strong>Mileage:</strong> {getValues("mileage")?.toLocaleString('en-US')} miles</p>
                     <p><strong>Condition:</strong> {getValues("condition")}</p>
                     <p><strong>Description:</strong> {getValues("description")}</p>
                     {getValues("additionalDetails") && <p><strong>Additional:</strong> {getValues("additionalDetails")}</p>}

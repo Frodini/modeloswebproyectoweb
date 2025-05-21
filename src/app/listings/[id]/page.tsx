@@ -33,7 +33,7 @@ export default function CarDetailPage() {
   
   const carDetails = [
     { label: "Year", value: car.year, icon: CalendarDaysIcon },
-    { label: "Mileage", value: `${car.mileage.toLocaleString()} miles`, icon: GaugeIcon },
+    { label: "Mileage", value: `${car.mileage.toLocaleString('en-US')} miles`, icon: GaugeIcon },
     { label: "Condition", value: car.condition, icon: WrenchIcon },
     { label: "Engine", value: car.engine, icon: CogIcon },
     { label: "Transmission", value: car.transmission, icon: WrenchIcon }, // Using WrenchIcon as placeholder
@@ -82,7 +82,7 @@ export default function CarDetailPage() {
             <div>
               <CardTitle className="text-3xl font-bold text-primary">{`${car.make} ${car.model}`}</CardTitle>
               <CardDescription className="text-lg text-muted-foreground">
-                ${car.price.toLocaleString()}
+                ${car.price.toLocaleString('en-US')}
               </CardDescription>
             </div>
             {car.featured && <Badge variant="default" className="mt-2 md:mt-0 text-sm py-1 px-3 bg-accent text-accent-foreground">Featured</Badge>}

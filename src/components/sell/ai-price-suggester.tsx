@@ -111,7 +111,7 @@ export function AiPriceSuggester({ form, onSuggestionAccept }: AiPriceSuggesterP
           <Alert variant="default" className="bg-background">
             <AlertTitle className="font-semibold text-primary">Price Suggestion</AlertTitle>
             <AlertDescription>
-              <p className="text-2xl font-bold my-2">${suggestion.suggestedPrice.toLocaleString()}</p>
+              <p className="text-2xl font-bold my-2">${suggestion.suggestedPrice.toLocaleString('en-US')}</p>
               <p className="text-sm text-muted-foreground mb-3">{suggestion.reasoning}</p>
               <Button 
                 size="sm" 
