@@ -98,9 +98,13 @@ export default function CarDetailPage() {
           const { error } = await stripe.redirectToCheckout({ sessionId });
           if (error) {
             console.error("Stripe redirectToCheckout error:", error);
+            let description = error.message || "Failed to redirect to Stripe.";
+            if (error.message && error.message.includes("does not have permission to navigate the target frame")) {
+              description = "Could not redirect to Stripe. This might be due to iframe security restrictions in the preview environment. Try opening the app in a new tab or after deployment.";
+            }
             toast({
               title: "Payment Error",
-              description: error.message || "Failed to redirect to Stripe.",
+              description: description,
               variant: "destructive",
             });
           }
@@ -114,9 +118,13 @@ export default function CarDetailPage() {
       }
     } catch (error) {
       console.error("Buy Now error:", error);
+      let description = error instanceof Error ? error.message : "An unexpected error occurred.";
+      if (error instanceof Error && error.message && error.message.includes("does not have permission to navigate the target frame")) {
+        description = "Could not redirect to Stripe. This might be due to iframe security restrictions in the preview environment. Try opening the app in a new tab or after deployment.";
+      }
       toast({
         title: "Payment Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        description: description,
         variant: "destructive",
       });
     } finally {
@@ -144,7 +152,7 @@ export default function CarDetailPage() {
                   width={1200}
                   height={700}
                   className="object-cover w-full h-[350px] md:h-[500px]"
-                  data-ai-hint={`${car.make.toLowerCase()} ${car.model.toLowerCase()}`}
+                  data-ai-hint={`${car.make.toLowerCase()} car`}
                   priority={index === 0}
                 />
               </CarouselItem>
@@ -246,3 +254,4 @@ export default function CarDetailPage() {
     </div>
   );
 }
+
