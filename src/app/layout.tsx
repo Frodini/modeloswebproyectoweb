@@ -1,19 +1,19 @@
-import type { Metadata } from 'next';
-import { Geist } from 'next/font/google'; // Using Geist Sans as specified
-import './globals.css';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
+import type { Metadata } from "next";
+import { Geist } from "next/font/google"; // Using Geist Sans as specified
+import "./globals.css";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
 import { Toaster } from "@/components/ui/toaster";
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: 'AutoLink - Find Your Next Ride',
-  description: 'Search, buy, or sell cars with AutoLink.',
+  title: "AutoLink - Find Your Next Ride",
+  description: "Search, buy, or sell cars with AutoLink.",
 };
 
 export default function RootLayout({
