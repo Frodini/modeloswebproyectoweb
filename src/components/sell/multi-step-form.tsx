@@ -66,7 +66,7 @@ const baseSchema = z.object({
     .number()
     .min(1900, "Invalid year")
     .max(new Date().getFullYear() + 1, "Invalid year"),
-  mileage: z.coerce.number().min(0, "Mileage cannot be negative"),
+  mileage: z.coerce.number().min(0, "Mileage cannot be negative").optional(), // Made optional in base
   condition: z.string().min(1, "Condition is required"),
   price: z.coerce.number().min(0, "Price cannot be negative").optional(),
   description: z.string().min(10, "Description must be at least 10 characters"),
@@ -113,6 +113,14 @@ const finalSubmissionSchema = baseSchema.superRefine((data, ctx) => {
       message: "Price is required and must be greater than 0.",
     });
   }
+  if (data.mileage === undefined || data.mileage < 0) {
+    // Mileage might be 0, so check for undefined
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["mileage"],
+      message: "Mileage is required and cannot be negative.",
+    });
+  }
 });
 
 const totalSteps = 3;
@@ -151,7 +159,7 @@ export function MultiStepForm() {
     defaultValues: {
       make: "",
       model: "",
-      year: undefined,
+      year: undefined, // Or a sensible default like new Date().getFullYear()
       mileage: undefined,
       condition: "",
       price: undefined,
@@ -172,15 +180,25 @@ export function MultiStepForm() {
   const availableModels = currentMake ? allCarModels[currentMake] || [] : [];
 
   const handleNext = async () => {
+    let fieldsToValidate: Array<keyof FormData>;
     let isValid = false;
+
     if (currentStep === 1) {
-      isValid = await trigger(step1Fields);
+      fieldsToValidate = step1Fields;
+      // For step 1, ensure mileage is also validated if it's considered required for proceeding.
+      // If mileage becomes truly optional for step 1, this specific trigger might not be needed
+      // or `finalSubmissionSchema` will catch it.
+      // For now, assuming all step1Fields are checked for basic validity.
+      const baseStep1Validation = await trigger(
+        fieldsToValidate.filter((f) => f !== "price" && f !== "mileage")
+      );
+      const mileageValidation = await trigger(["mileage"]); // Price is optional until final submit
+      isValid = baseStep1Validation && mileageValidation;
     } else if (currentStep === 2) {
       const photosValue = getValues("photos");
       if (photosValue && photosValue.length > 0) {
         isValid = await trigger(step2Fields);
       } else {
-        // Photos are optional, so it's valid to proceed without them
         isValid = true;
       }
     }
@@ -218,7 +236,6 @@ export function MultiStepForm() {
     const files = event.target.files;
     if (files && files.length > 0) {
       setValue("photos", files, { shouldValidate: true });
-      // Revoke previous object URLs
       photoPreviews.forEach((url) => URL.revokeObjectURL(url));
       const newPreviews = Array.from(files).map((file) =>
         URL.createObjectURL(file)
@@ -234,12 +251,14 @@ export function MultiStepForm() {
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     setIsSubmitting(true);
 
-    const finalValidation = await trigger();
-    if (!finalValidation) {
+    // Trigger validation using the final schema before submitting
+    const finalValidationResult = await form.trigger(); // this uses the resolver with finalSubmissionSchema if currentStep === totalSteps
+
+    if (!finalValidationResult) {
       toast({
         title: "Submission Error",
         description:
-          "Please ensure all required fields, including Price, are filled correctly.",
+          "Please ensure all required fields, including Price and Mileage, are filled correctly.",
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -248,25 +267,31 @@ export function MultiStepForm() {
 
     const formDataToSubmit = new FormData();
 
-    // Append all string/number fields
     (Object.keys(data) as Array<keyof FormData>).forEach((key) => {
-      if (key !== "photos" && data[key] !== undefined && data[key] !== null) {
-        formDataToSubmit.append(key, String(data[key]));
+      const value = data[key];
+      if (key === "photos") {
+        // Handled separately below
+      } else if (value !== undefined && value !== null) {
+        formDataToSubmit.append(key, String(value));
       }
     });
 
-    // Append photo if present
     if (data.photos && data.photos.length > 0) {
-      formDataToSubmit.append("photoFile", data.photos[0]); // Send the first photo
+      formDataToSubmit.append("photoFile", data.photos[0]);
     }
 
     const apiUrl = "/api/cars";
-    console.log("[MultiStepForm] Submitting FormData to API URL:", apiUrl);
+    console.log(
+      "[MultiStepForm] Submitting FormData to API URL:",
+      apiUrl,
+      "with data:",
+      data
+    );
 
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
-        body: formDataToSubmit, // Send FormData, browser will set Content-Type
+        body: formDataToSubmit,
       });
 
       if (!response.ok) {
@@ -292,17 +317,21 @@ export function MultiStepForm() {
             "[MultiStepForm] API error response text (not JSON):",
             errorText
           );
-          if (response.status === 404) {
+          if (
+            response.status === 404 &&
+            errorText.includes("Page could not be found")
+          ) {
+            // More specific 404 check
             errorMessage = `API Error: 404 Not Found. Endpoint ${apiUrl} does not exist.`;
-          } else if (errorText.length > 0 && errorText.length < 300) {
-            // Heuristic for short error text
-            errorMessage = errorText;
+          } else if (errorText.length > 0 && errorText.length < 500) {
+            errorMessage = `Server error: ${errorText}`;
           }
         }
         throw new Error(errorMessage);
       }
 
-      const createdCar = await response.json();
+      const responseData = await response.json();
+      const createdCar = responseData.car;
       console.log("[MultiStepForm] Car created via API:", createdCar);
 
       toast({
@@ -311,7 +340,7 @@ export function MultiStepForm() {
       });
       router.push(`/listings`);
       form.reset();
-      photoPreviews.forEach((url) => URL.revokeObjectURL(url)); // Clean up previews after successful submission
+      photoPreviews.forEach((url) => URL.revokeObjectURL(url));
       setPhotoPreviews([]);
       setCurrentStep(1);
     } catch (error) {
@@ -329,7 +358,6 @@ export function MultiStepForm() {
     }
   };
 
-  // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
       photoPreviews.forEach((url) => URL.revokeObjectURL(url));
@@ -490,7 +518,10 @@ export function MultiStepForm() {
                           <Input
                             type="number"
                             placeholder="e.g., 50000"
-                            {...field}
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            value={field.value ?? ""}
                             onChange={(e) =>
                               field.onChange(
                                 e.target.value === ""
@@ -542,7 +573,10 @@ export function MultiStepForm() {
                         <Input
                           type="number"
                           placeholder="e.g., 15000 (Optional for now)"
-                          {...field}
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          value={field.value ?? ""}
                           onChange={(e) =>
                             field.onChange(
                               e.target.value === ""
@@ -572,6 +606,7 @@ export function MultiStepForm() {
                         <Textarea
                           placeholder="Describe your car in detail..."
                           {...field}
+                          value={field.value ?? ""}
                           rows={4}
                         />
                       </FormControl>
@@ -589,6 +624,7 @@ export function MultiStepForm() {
                         <Textarea
                           placeholder="Any other relevant information..."
                           {...field}
+                          value={field.value ?? ""}
                           rows={3}
                         />
                       </FormControl>
@@ -608,8 +644,13 @@ export function MultiStepForm() {
                       <FormItem>
                         <FormLabel>Engine</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., 2.0L Turbo I4" {...field} />
+                          <Input
+                            placeholder="e.g., 2.0L Turbo I4"
+                            {...field}
+                            value={field.value ?? ""}
+                          />
                         </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -623,8 +664,10 @@ export function MultiStepForm() {
                           <Input
                             placeholder="Vehicle Identification Number"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -636,7 +679,7 @@ export function MultiStepForm() {
                         <FormLabel>Transmission</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value || undefined}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -651,6 +694,7 @@ export function MultiStepForm() {
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -662,7 +706,7 @@ export function MultiStepForm() {
                         <FormLabel>Fuel Type</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value || undefined}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -677,6 +721,7 @@ export function MultiStepForm() {
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -687,8 +732,13 @@ export function MultiStepForm() {
                       <FormItem>
                         <FormLabel>Exterior Color</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Alpine White" {...field} />
+                          <Input
+                            placeholder="e.g., Alpine White"
+                            {...field}
+                            value={field.value ?? ""}
+                          />
                         </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -699,8 +749,13 @@ export function MultiStepForm() {
                       <FormItem>
                         <FormLabel>Interior Color</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Black Leather" {...field} />
+                          <Input
+                            placeholder="e.g., Black Leather"
+                            {...field}
+                            value={field.value ?? ""}
+                          />
                         </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -718,7 +773,6 @@ export function MultiStepForm() {
                   control={form.control}
                   name="photos"
                   render={() => (
-                    // field is not directly used for Input type="file" with RHF's default controller registration for files
                     <FormItem>
                       <FormLabel>
                         Car Photo (select one, max 5MB, JPG/PNG/WEBP)
@@ -728,8 +782,6 @@ export function MultiStepForm() {
                           type="file"
                           accept="image/jpeg,image/png,image/webp"
                           onChange={handlePhotoChange}
-                          // We don't spread field here for file inputs as RHF handles them differently.
-                          // The `setValue('photos', files)` in `handlePhotoChange` is key.
                         />
                       </FormControl>
                       <FormMessage />
@@ -796,6 +848,11 @@ export function MultiStepForm() {
                         Price is missing or zero. Please set a price.
                       </p>
                     )}
+                    {getValues("mileage") === undefined && (
+                      <p className="text-destructive font-semibold">
+                        Mileage is missing. Please set a mileage.
+                      </p>
+                    )}
                   </div>
                   {photoPreviews.length > 0 && (
                     <>
@@ -803,22 +860,17 @@ export function MultiStepForm() {
                         Photo Preview:
                       </h4>
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {photoPreviews.slice(0, 1).map(
-                          (
-                            src,
-                            index // Show only first photo preview
-                          ) => (
-                            <Image
-                              key={index}
-                              src={src}
-                              alt={`Preview ${index + 1}`}
-                              width={100}
-                              height={75}
-                              className="rounded object-cover aspect-video"
-                              data-ai-hint="car parts"
-                            />
-                          )
-                        )}
+                        {photoPreviews.slice(0, 1).map((src, index) => (
+                          <Image
+                            key={index}
+                            src={src}
+                            alt={`Preview ${index + 1}`}
+                            width={100}
+                            height={75}
+                            className="rounded object-cover aspect-video"
+                            data-ai-hint="car parts"
+                          />
+                        ))}
                       </div>
                     </>
                   )}
@@ -855,7 +907,8 @@ export function MultiStepForm() {
                 disabled={
                   isSubmitting ||
                   !getValues("price") ||
-                  getValues("price")! <= 0
+                  getValues("price")! <= 0 ||
+                  getValues("mileage") === undefined
                 }
               >
                 {isSubmitting ? (
